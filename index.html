@@ -1,74 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
-<title>Time Tracker - Full Screen</title>
+<title>Offline Time Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-    /* पूरे पेज को फुल स्क्रीन सेट करना */
+    /* आपका ओरिजिनल CSS */
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow-x: hidden; }
     body { font-family: 'Segoe UI', Arial; background:#f0f2f5; display: flex; flex-direction: column; align-items: center; }
-
-    /* कंटेनर अब पूरी विड्थ लेगा */
-    .container { 
-        background: white; 
-        width: 100%; 
-        min-height: 100vh; 
-        box-sizing: border-box;
-        padding: 20px; 
-        display: flex; 
-        flex-direction: column;
-    }
-    
+    .container { background: white; width: 100%; min-height: 100vh; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; }
     .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px; }
     .nav-btn { cursor: pointer; font-size: 24px; padding: 10px; background: #eee; border-radius: 50%; border: none; }
     #monthYear { font-size: 22px; font-weight: bold; color: #007bff; }
-
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 20px; }
     .day-name { font-weight: bold; background: #e9ecef; padding: 10px; border-radius: 8px; font-size: 14px; text-align: center; }
     .day { padding: 15px 5px; background: #f8f9fa; border-radius: 10px; cursor: pointer; position: relative; font-size: 16px; text-align: center; border: 1px solid #eee; }
     .today { border: 2px solid #007bff; font-weight: bold; }
     .selected { background: #007bff !important; color: white; }
     .has-data::after { content: '★'; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); color: #ffc107; font-size: 12px; }
-
-    /* टेबल अब पूरी जगह लेगा */
     .input-section { margin-top: 20px; width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #fff; }
     th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
     th { background: #007bff; color: white; font-size: 14px; }
-    
-    /* इनपुट बॉक्स को बड़ा करना */
     input { width: 95%; padding: 8px; border: 1px solid #eee; outline: none; font-size: 14px; border-radius: 4px; }
-    input[type="time"] { cursor: pointer; }
-
     .btn-row { display: flex; justify-content: space-between; gap: 15px; margin-bottom: 30px; }
     .action-btn { flex: 1; padding: 15px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
     .add-btn { background: #e7f3ff; color: #007bff; }
     .save-btn { background: #007bff; color: white; }
-    .add-btn:active, .save-btn:active { transform: scale(0.98); }
-
-    /* ग्राफ को बड़ा और रिस्पॉन्सिव बनाना */
-    .chart-container { 
-        width: 100%; 
-        padding: 15px; 
-        background: #fff; 
-        border-radius: 15px; 
-        border: 1px solid #ddd; 
-        box-sizing: border-box; 
-        margin-top: auto;
-        min-height: 300px;
-    }
-
-    /* Modal Styling */
+    .chart-container { width: 100%; padding: 15px; background: #fff; border-radius: 15px; border: 1px solid #ddd; box-sizing: border-box; margin-top: auto; min-height: 300px; }
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
     .modal-content { background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; }
     .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
     .m-btn { flex: 1; padding: 12px; border-radius: 8px; border: none; color: white; cursor: pointer; font-weight: bold; }
-
-    @media (min-width: 768px) {
-        .container { max-width: 900px; margin: 20px; min-height: auto; border-radius: 20px; }
-    }
+    @media (min-width: 768px) { .container { max-width: 900px; margin: 20px; min-height: auto; border-radius: 20px; } }
 </style>
 </head>
 <body>
@@ -119,6 +85,29 @@
 </div>
 
 <script>
+// --- OFFLINE SERVICE WORKER REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        const swCode = `
+            const CACHE_NAME = 'tracker-v2';
+            const assets = [
+                './',
+                'index.html',
+                'https://cdn.jsdelivr.net/npm/chart.js'
+            ];
+            self.addEventListener('install', e => {
+                e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(assets)));
+            });
+            self.addEventListener('fetch', e => {
+                e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
+            });
+        `;
+        const blob = new Blob([swCode], {type: 'application/javascript'});
+        navigator.serviceWorker.register(URL.createObjectURL(blob));
+    });
+}
+
+// --- ORIGINAL LOGIC ---
 let currentViewDate = new Date();
 let currentSelectedDate = "";
 let myChart;
@@ -201,7 +190,7 @@ function saveData() {
     if(totalH > 24) return alert("कुल पढ़ाई 24 घंटे से ज्यादा नहीं हो सकती!");
     localStorage.setItem(currentSelectedDate, JSON.stringify(data));
     generateCalendar();
-    alert("Data सफलतापूर्वक Save हो गया!");
+    alert("Data सुरक्षित सेव हो गया (Offline भी रहेगा)!");
 }
 
 function updateChart() {
@@ -222,15 +211,14 @@ function updateChart() {
         data: {
             labels: labels,
             datasets: [
-                { type: 'bar', label: 'पढ़ाई के घंटे', data: studyData, backgroundColor: 'rgba(0, 123, 255, 0.5)', borderColor: '#007bff', borderWidth: 1 },
-                { type: 'line', label: 'प्रगति रेखा', data: studyData, borderColor: '#dc3545', borderWidth: 3, tension: 0, fill: false, pointRadius: 4 }
+                { type: 'bar', label: 'पढ़ाई (घंटे)', data: studyData, backgroundColor: 'rgba(0, 123, 255, 0.5)', borderColor: '#007bff', borderWidth: 1 },
+                { type: 'line', label: 'प्रगति', data: studyData, borderColor: '#dc3545', borderWidth: 3, tension: 0, fill: false, pointRadius: 4 }
             ]
         },
         options: { 
             responsive: true, 
             maintainAspectRatio: false,
-            scales: { y: { min: 0, max: 24, title: { display: true, text: 'Hours' } } },
-            plugins: { legend: { position: 'top' } }
+            scales: { y: { min: 0, max: 24, title: { display: true, text: 'Hours' } } }
         }
     });
 }
@@ -246,7 +234,7 @@ function showPopup(day, data) {
 }
 
 function deleteData() {
-    if(confirm("क्या आप वाकई इस दिन का डेटा डिलीट करना चाहते हैं?")) { 
+    if(confirm("डिलीट करना चाहते हैं?")) { 
         localStorage.removeItem(currentSelectedDate); 
         closeModal(); 
         generateCalendar(); 
