@@ -156,7 +156,7 @@ function addRow(sub="", start="", end="", total="") {
     const tbody = document.getElementById("tableBody");
     const row = tbody.insertRow();
     row.innerHTML = `
-        <td><input type="text" class="sub" value="${sub}" placeholder="उदा: Maths"></td>
+        <td><input type="text" class="sub" value="${sub}" placeholder="subject"></td>
         <td><input type="time" class="start" value="${start}" oninput="calcRow(this)"></td>
         <td><input type="time" class="end" value="${end}" oninput="calcRow(this)"></td>
         <td class="total-cell" style="font-weight:bold; color:#007bff;">${total || '0'}h</td>
